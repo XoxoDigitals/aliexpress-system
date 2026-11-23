@@ -2,7 +2,6 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Button, Card, CardBody, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
@@ -31,7 +30,8 @@ function LoginForm() {
       setError("Invalid email or password");
       return;
     }
-    router.push(params.get("callbackUrl") || "/");
+    const callback = params.get("callbackUrl");
+    router.push(callback?.startsWith("/") && !callback.startsWith("//") ? callback : "/");
     router.refresh();
   }
 
@@ -41,10 +41,10 @@ function LoginForm() {
       <div className="relative w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 via-brand-600 to-indigo-700 text-xl font-bold text-white shadow-lg shadow-brand-600/25 ring-1 ring-inset ring-white/20">
-            D
+            O
           </span>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your Dropship Ops workspace</p>
+          <p className="mt-1 text-sm text-slate-500">Sign in to Order System</p>
         </div>
         <Card className="shadow-xl shadow-slate-900/[0.04]">
           <CardBody className="p-6">
@@ -79,12 +79,6 @@ function LoginForm() {
             </form>
           </CardBody>
         </Card>
-        <p className="mt-6 text-center text-sm text-slate-500">
-          No account?{" "}
-          <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700 hover:underline">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   );

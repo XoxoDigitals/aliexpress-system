@@ -6,8 +6,8 @@ import { Providers } from "@/components/providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Dropship Ops",
-  description: "Manage dropshipping Etsy & eBay stores: listings, orders, tracking, analytics.",
+  title: "Order System",
+  description: "Order processing portal for clients, team, and admin.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

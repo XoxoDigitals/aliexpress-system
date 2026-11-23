@@ -24,3 +24,5 @@ public/uploads/
 cainiao_bundle.js
 cainiao_new.html
 _smoke.ts
+
+*.tsbuildinfo

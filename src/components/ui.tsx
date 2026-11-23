@@ -140,6 +140,37 @@ export function Stat({ label, value, sub }: { label: string; value: React.ReactN
   );
 }
 
+export function Modal({
+  title,
+  onClose,
+  children,
+  wide,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={cn("my-6 w-full rounded-2xl bg-white shadow-xl", wide ? "max-w-3xl" : "max-w-md")}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            ✕
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export function ErrorNote({ message }: { message?: string | null }) {
+  if (!message) return null;
+  return <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">{message}</p>;
+}
+
 export function EmptyState({ title, desc, action }: { title: string; desc?: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/90 bg-white/80 px-6 py-16 text-center shadow-sm">

@@ -1,55 +1,38 @@
+import type { Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { prisma } from "./db";
 
-export async function getCurrentUserId(): Promise<string | null> {
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
+
+export function httpError(status: number, message?: string): Error {
+  const err = new Error(message ?? String(status)) as Error & { status?: number; expose?: boolean };
+  err.status = status;
+  err.expose = !!message;
+  return err;
+}
+
+/** Loads the user from the database on every call, so deactivation and role changes apply at once. */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await getServerSession(authOptions);
-  const id = (session?.user as { id?: string } | undefined)?.id;
-  return id ?? null;
+  const id = session?.user?.id;
+  if (!id) return null;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+  if (!user || !user.active) return null;
+  return { id: user.id, name: user.name, email: user.email, role: user.role };
 }
 
-/** Throws a 401-style error if not signed in. Returns the user id. */
-export async function requireUserId(): Promise<string> {
-  const id = await getCurrentUserId();
-  if (!id) {
-    const err = new Error("UNAUTHORIZED") as Error & { status?: number };
-    err.status = 401;
-    throw err;
-  }
-  return id;
-}
-
-/**
- * Ensure the given store belongs to the current user. Returns the store or throws 403/404.
- * Every store-scoped query MUST go through this so tenants can't read each other's data.
- */
-export async function assertStoreOwner(storeId: string, userId: string) {
-  const store = await prisma.store.findUnique({ where: { id: storeId } });
-  if (!store) {
-    const err = new Error("NOT_FOUND") as Error & { status?: number };
-    err.status = 404;
-    throw err;
-  }
-  if (store.userId !== userId) {
-    const err = new Error("FORBIDDEN") as Error & { status?: number };
-    err.status = 403;
-    throw err;
-  }
-  return store;
-}
-
-/** Resolve a store id from an order id, asserting ownership. */
-export async function assertOrderOwner(orderId: string, userId: string) {
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { store: true } });
-  if (!order) {
-    const err = new Error("NOT_FOUND") as Error & { status?: number };
-    err.status = 404;
-    throw err;
-  }
-  if (order.store.userId !== userId) {
-    const err = new Error("FORBIDDEN") as Error & { status?: number };
-    err.status = 403;
-    throw err;
-  }
-  return order;
+export async function requireUser(...roles: Role[]): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) throw httpError(401);
+  if (roles.length && !roles.includes(user.role)) throw httpError(403);
+  return user;
 }

@@ -2,11 +2,28 @@ export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
-export function genOrderNumber(): string {
-  const d = new Date();
-  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `ORD-${ymd}-${rand}`;
+export function fmtMoney(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const digits = Number.isInteger(v) ? 0 : 2;
+  return `Rs ${v.toLocaleString("en-PK", { minimumFractionDigits: digits, maximumFractionDigits: 2 })}`;
+}
+
+export const PAYMENT_LABELS: Record<string, string> = {
+  NOT_DUE: "Not due",
+  PENDING: "Payment pending",
+  PAID: "Paid",
+};
+
+/** Client-side JSON fetch that throws the API's error message. */
+export async function api<T = unknown>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+  const res = await fetch(path, {
+    method: init?.method ?? (init?.body !== undefined ? "POST" : "GET"),
+    headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.ok) throw new Error(json?.error || "Something went wrong");
+  return json.data as T;
 }
 
 export function fmtDate(d: Date | string | null | undefined): string {
@@ -35,6 +52,9 @@ export const STATUS_COLORS: Record<string, string> = {
   // order
   NEW: "bg-sky-50 text-sky-700 ring-sky-600/20",
   PROCESSING: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  NOT_DUE: "bg-slate-100 text-slate-600 ring-slate-500/15",
+  PAID: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   SHIPPED: "bg-blue-50 text-blue-700 ring-blue-600/20",
   DELIVERED: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   CANCELLED: "bg-rose-50 text-rose-700 ring-rose-600/20",
@@ -55,6 +75,9 @@ export const STATUS_DOT_COLORS: Record<string, string> = {
   ARCHIVED: "bg-slate-400",
   NEW: "bg-sky-500",
   PROCESSING: "bg-amber-500",
+  COMPLETED: "bg-emerald-500",
+  NOT_DUE: "bg-slate-400",
+  PAID: "bg-emerald-500",
   SHIPPED: "bg-blue-500",
   DELIVERED: "bg-emerald-500",
   CANCELLED: "bg-rose-500",
