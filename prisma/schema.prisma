@@ -39,6 +39,8 @@ model User {
   // CLIENT only: fixed charge per order, and unapplied money received.
   ratePerOrder Decimal? @db.Decimal(12, 2)
   creditBalance Decimal @default(0) @db.Decimal(12, 2)
+  // CLIENT only: when true, the client can see the processing price on their orders.
+  showPurchasePrice Boolean @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -57,7 +59,8 @@ model User {
 
 model Order {
   id          String @id @default(cuid())
-  orderNumber String @unique
+  // Unique per client, so two clients can use the same marketplace order ID.
+  orderNumber String
 
   clientId     String
   client       User    @relation("OrderClient", fields: [clientId], references: [id], onDelete: Restrict)
@@ -111,6 +114,7 @@ model Order {
 
   events OrderEvent[]
 
+  @@unique([clientId, orderNumber])
   @@index([clientId, archived, status])
   @@index([assignedToId, archived, status])
   @@index([clientId, paymentStatus, completedAt])

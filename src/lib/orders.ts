@@ -14,7 +14,7 @@ export function orderScope(user: CurrentUser): Prisma.OrderWhereInput {
 }
 
 export const orderInclude = {
-  client: { select: { id: true, name: true } },
+  client: { select: { id: true, name: true, showPurchasePrice: true } },
   assignedTo: { select: { id: true, name: true } },
   processedBy: { select: { id: true, name: true } },
   completedBy: { select: { id: true, name: true } },
@@ -45,21 +45,26 @@ export function serializeOrder(o: OrderRow, role: CurrentUser["role"]) {
     archived: o.archived,
     createdAt: o.createdAt.toISOString(),
   };
-  if (role === "TEAM") return { ...base, client: o.client };
+  const client = { id: o.client.id, name: o.client.name };
+  const purchasePrice = o.purchasePrice === null ? null : toNumber(o.purchasePrice);
+  if (role === "TEAM") return { ...base, client };
   const billing = {
     paymentStatus: o.paymentStatus,
     rate: toNumber(o.rate),
     paidAt: o.paidAt?.toISOString() ?? null,
   };
-  if (role === "CLIENT") return { ...base, ...billing };
+  if (role === "CLIENT") {
+    // Admin decides per client whether the processing price is shared.
+    return o.client.showPurchasePrice ? { ...base, ...billing, purchasePrice } : { ...base, ...billing };
+  }
   return {
     ...base,
     ...billing,
-    client: o.client,
+    client,
     assignedTo: o.assignedTo,
     processedBy: o.processedBy,
     completedBy: o.completedBy,
-    purchasePrice: o.purchasePrice === null ? null : toNumber(o.purchasePrice),
+    purchasePrice,
   };
 }
 

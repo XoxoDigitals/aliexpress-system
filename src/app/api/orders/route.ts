@@ -79,7 +79,9 @@ export const GET = handle(async (req: Request) => {
 
 export const POST = handle(async (req: Request) => {
   const user = await requireUser("ADMIN", "CLIENT");
-  const { clientId: requestedClient, assignedToId, cardInfo, ...body } = orderCreateSchema.parse(await parseJson(req));
+  const { clientId: requestedClient, assignedToId, cardInfo, orderNumber: requestedNumber, ...body } = orderCreateSchema.parse(
+    await parseJson(req)
+  );
 
   const clientId = user.role === "CLIENT" ? user.id : requestedClient;
   if (!clientId) return fail("Select a client", 422);
@@ -96,7 +98,15 @@ export const POST = handle(async (req: Request) => {
     if (!member) return fail("Team member not found", 404);
   }
 
-  const orderNumber = genOrderNumber();
+  let orderNumber = requestedNumber ?? genOrderNumber();
+  const taken = (n: string) =>
+    prisma.order.findUnique({ where: { clientId_orderNumber: { clientId: client.id, orderNumber: n } }, select: { id: true } });
+  if (requestedNumber) {
+    if (await taken(requestedNumber)) return fail(`Order ID ${requestedNumber} already exists for this client`, 409);
+  } else {
+    while (await taken(orderNumber)) orderNumber = genOrderNumber();
+  }
+
   const order = await prisma.order.create({
     data: {
       ...body,

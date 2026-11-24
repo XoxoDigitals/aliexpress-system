@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { api, fmtDate, fmtMoney, PAYMENT_LABELS } from "@/lib/utils";
+import { api, fmtDate, fmtMoney, PAYMENT_LABELS, trackingUrl } from "@/lib/utils";
 import { Badge, Button, Card, EmptyState, ErrorNote, Input, Select } from "./ui";
 import { useApp } from "./AppContext";
 import { OrderForm } from "./OrderForm";
@@ -108,6 +108,8 @@ export function OrdersClient({ archived }: { archived: boolean }) {
     }
   }
 
+  // The API only includes purchasePrice for admins and for clients the admin has allowed.
+  const showPrice = isAdmin || rows.some((r) => r.purchasePrice !== undefined);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasFilters = search || Object.entries(filters).some(([k, v]) => k !== "q" && v);
 
@@ -212,10 +214,11 @@ export function OrdersClient({ archived }: { archived: boolean }) {
                 <th className="px-4 py-3">Variant</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Account</th>
+                <th className="px-4 py-3">Tracking</th>
                 {isAdmin && <th className="px-4 py-3">Team</th>}
                 {showBilling && <th className="px-4 py-3">Payment</th>}
                 {showBilling && <th className="px-4 py-3 text-right">Rate</th>}
-                {isAdmin && <th className="px-4 py-3 text-right">Price</th>}
+                {showPrice && <th className="px-4 py-3 text-right">Price</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -237,10 +240,19 @@ export function OrdersClient({ archived }: { archived: boolean }) {
                   <td className="max-w-[180px] truncate px-4 py-3" title={o.variantName}>{o.variantName}</td>
                   <td className="px-4 py-3"><Badge status={o.status} /></td>
                   <td className="px-4 py-3">{o.accountName || "—"}</td>
+                  <td className="px-4 py-3">
+                    {o.trackingNumber ? (
+                      <a href={trackingUrl(o.trackingNumber)} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-700 hover:underline">
+                        {o.trackingNumber}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   {isAdmin && <td className="px-4 py-3">{o.assignedTo?.name || <span className="text-slate-400">Unassigned</span>}</td>}
                   {showBilling && <td className="px-4 py-3"><Badge status={o.paymentStatus}>{PAYMENT_LABELS[o.paymentStatus ?? ""]}</Badge></td>}
                   {showBilling && <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(o.rate)}</td>}
-                  {isAdmin && <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(o.purchasePrice)}</td>}
+                  {showPrice && <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(o.purchasePrice)}</td>}
                 </tr>
               ))}
             </tbody>

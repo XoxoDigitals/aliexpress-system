@@ -16,11 +16,13 @@ export const PATCH = handle(async (req: Request, ctx: { params: Promise<{ id: st
   if (!target) throw httpError(404);
   if (input.active === false && target.id === admin.id) return fail("You cannot deactivate your own account", 409);
   if (input.ratePerOrder !== undefined && target.role !== "CLIENT") return fail("Only clients have a rate", 422);
+  if (input.showPurchasePrice !== undefined && target.role !== "CLIENT") return fail("Only clients have this setting", 422);
 
   const data: Prisma.UserUpdateInput = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.active !== undefined) data.active = input.active;
   if (input.ratePerOrder !== undefined) data.ratePerOrder = input.ratePerOrder;
+  if (input.showPurchasePrice !== undefined) data.showPurchasePrice = input.showPurchasePrice;
   if (input.password) data.passwordHash = await bcrypt.hash(input.password, 12);
   if (input.email !== undefined) {
     const email = input.email.toLowerCase();

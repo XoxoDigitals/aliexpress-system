@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { api, fmtDateTime, fmtMoney, PAYMENT_LABELS } from "@/lib/utils";
+import { api, fmtDateTime, fmtMoney, PAYMENT_LABELS, trackingUrl } from "@/lib/utils";
 import { Badge, Button, Card, CardBody, CardHeader, ErrorNote, Field, Input, Select } from "./ui";
 import { useApp } from "./AppContext";
 import type { OrderRow } from "./OrdersClient";
@@ -87,6 +87,8 @@ export function OrderDetail({ orderId }: { orderId: string }) {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [carrier, setCarrier] = useState("");
 
+  const [idDraft, setIdDraft] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     try {
       setOrder(await api<Detail>(`/api/orders/${orderId}`));
@@ -122,6 +124,21 @@ export function OrderDetail({ orderId }: { orderId: string }) {
     }
   }
 
+  async function saveOrderId(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/orders/${orderId}`, { method: "PATCH", body: { orderNumber: idDraft } });
+      setIdDraft(null);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!order) return error ? <ErrorNote message={error} /> : <p className="text-sm text-slate-500">Loading…</p>;
   const canReassign = role === "ADMIN" && (order.status === "NEW" || order.status === "PROCESSING");
   const currentMissing = order.assignedTo && !team.some((t) => t.id === order.assignedTo?.id);
@@ -135,7 +152,20 @@ export function OrderDetail({ orderId }: { orderId: string }) {
         ← Back
       </Link>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{order.orderNumber}</h1>
+        {idDraft !== null ? (
+          <form onSubmit={saveOrderId} className="flex flex-wrap items-center gap-2">
+            <Input aria-label="Order ID" value={idDraft} maxLength={60} required autoFocus onChange={(e) => setIdDraft(e.target.value)} className="!w-64" />
+            <Button type="submit" size="sm" disabled={busy}>Save</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIdDraft(null)}>Cancel</Button>
+          </form>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{order.orderNumber}</h1>
+            {role === "ADMIN" && (
+              <Button variant="ghost" size="sm" onClick={() => { setError(null); setIdDraft(order.orderNumber); }}>Edit ID</Button>
+            )}
+          </>
+        )}
         <Badge status={order.status} />
         {order.paymentStatus && <Badge status={order.paymentStatus}>{PAYMENT_LABELS[order.paymentStatus]}</Badge>}
         {role === "ADMIN" && (order.status === "NEW" || order.status === "PROCESSING") && (
@@ -221,9 +251,18 @@ export function OrderDetail({ orderId }: { orderId: string }) {
                   role === "ADMIN" && <Info label="Assigned to">{order.assignedTo?.name}</Info>
                 )}
                 <Info label="Account name">{order.accountName}</Info>
-                <Info label="Tracking">{order.trackingNumber ? `${order.trackingNumber}${order.carrier ? ` (${order.carrier})` : ""}` : null}</Info>
+                <Info label="Tracking">
+                  {order.trackingNumber ? (
+                    <>
+                      <a href={trackingUrl(order.trackingNumber)} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                        {order.trackingNumber}
+                      </a>
+                      {order.carrier ? ` (${order.carrier})` : ""}
+                    </>
+                  ) : null}
+                </Info>
                 {role !== "TEAM" && <Info label="Rate">{fmtMoney(order.rate)}</Info>}
-                {role === "ADMIN" && <Info label="Price">{fmtMoney(order.purchasePrice)}</Info>}
+                {order.purchasePrice !== undefined && <Info label="Processing price">{fmtMoney(order.purchasePrice)}</Info>}
                 {role !== "TEAM" && order.paidAt && <Info label="Paid">{fmtDateTime(order.paidAt)}</Info>}
               </dl>
             </CardBody>

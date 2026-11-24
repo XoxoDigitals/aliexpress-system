@@ -23,7 +23,19 @@ const httpUrl = z
     }
   }, "Enter a valid http(s) link");
 
+const orderNumber = z
+  .string()
+  .trim()
+  .min(1, "Order ID is required")
+  .max(60)
+  .regex(/^[A-Za-z0-9#._\/ -]+$/, "Use letters, numbers, spaces, or # . _ / -");
+
 export const orderCreateSchema = z.object({
+  orderNumber: z
+    .union([z.literal(""), orderNumber])
+    .optional()
+    .nullable()
+    .transform((v) => v || null), // generated when blank
   clientId: z.string().optional(), // required for admin, ignored for clients
   assignedToId: z.string().optional().nullable(), // admin only
   clientReference: optionalText(120),
@@ -32,6 +44,8 @@ export const orderCreateSchema = z.object({
   variantName: z.string().trim().min(1, "Required").max(200),
   cardInfo: optionalText(1000),
 });
+
+export const orderUpdateSchema = z.object({ orderNumber });
 
 export const assignSchema = z.object({
   orderIds: z.array(z.string().min(1)).min(1).max(500),
@@ -64,6 +78,7 @@ export const createUserSchema = z
     password,
     role: z.enum(["CLIENT", "TEAM", "ADMIN"]),
     ratePerOrder: money.optional().nullable(),
+    showPurchasePrice: z.boolean().optional(),
   })
   .refine((v) => v.role !== "CLIENT" || (v.ratePerOrder != null && v.ratePerOrder > 0), {
     path: ["ratePerOrder"],
@@ -76,6 +91,7 @@ export const updateUserSchema = z.object({
   password: password.optional().or(z.literal("")),
   active: z.boolean().optional(),
   ratePerOrder: z.coerce.number().finite().positive().max(1_000_000).optional(),
+  showPurchasePrice: z.boolean().optional(),
 });
 
 export type OrderCreateInput = z.infer<typeof orderCreateSchema>;

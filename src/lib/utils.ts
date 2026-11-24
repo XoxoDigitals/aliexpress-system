@@ -8,6 +8,11 @@ export function fmtMoney(v: number | null | undefined): string {
   return `Rs ${v.toLocaleString("en-PK", { minimumFractionDigits: digits, maximumFractionDigits: 2 })}`;
 }
 
+/** Cainiao global tracking page for a tracking number. */
+export function trackingUrl(trackingNumber: string): string {
+  return `https://global.cainiao.com/newDetail.htm?mailNoList=${encodeURIComponent(trackingNumber.trim())}`;
+}
+
 export const PAYMENT_LABELS: Record<string, string> = {
   NOT_DUE: "Not due",
   PENDING: "Payment pending",

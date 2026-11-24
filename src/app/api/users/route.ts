@@ -16,6 +16,7 @@ const select = {
   active: true,
   ratePerOrder: true,
   creditBalance: true,
+  showPurchasePrice: true,
   createdAt: true,
 } as const;
 
@@ -45,6 +46,7 @@ export const POST = handle(async (req: Request) => {
       role: input.role,
       passwordHash: await bcrypt.hash(input.password, 12),
       ratePerOrder: input.role === "CLIENT" ? input.ratePerOrder : null,
+      showPurchasePrice: input.role === "CLIENT" ? (input.showPurchasePrice ?? false) : false,
     },
     select,
   });

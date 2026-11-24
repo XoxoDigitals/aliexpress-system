@@ -12,9 +12,10 @@ interface UserRow {
   active: boolean;
   ratePerOrder: number | null;
   creditBalance: number;
+  showPurchasePrice: boolean;
 }
-type Draft = { id?: string; name: string; email: string; password: string; role: UserRow["role"]; ratePerOrder: string; active: boolean };
-const BLANK: Draft = { name: "", email: "", password: "", role: "CLIENT", ratePerOrder: "", active: true };
+type Draft = { id?: string; name: string; email: string; password: string; role: UserRow["role"]; ratePerOrder: string; showPurchasePrice: boolean; active: boolean };
+const BLANK: Draft = { name: "", email: "", password: "", role: "CLIENT", ratePerOrder: "", showPurchasePrice: false, active: true };
 
 export function UsersClient({ currentUserId }: { currentUserId: string }) {
   const router = useRouter();
@@ -47,12 +48,12 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
             email: draft.email,
             password: draft.password,
             active: draft.active,
-            ...(draft.role === "CLIENT" ? { ratePerOrder: draft.ratePerOrder } : {}),
+            ...(draft.role === "CLIENT" ? { ratePerOrder: draft.ratePerOrder, showPurchasePrice: draft.showPurchasePrice } : {}),
           },
         });
       } else {
         await api("/api/users", {
-          body: { name: draft.name, email: draft.email, password: draft.password, role: draft.role, ...(draft.role === "CLIENT" ? { ratePerOrder: draft.ratePerOrder } : {}) },
+          body: { name: draft.name, email: draft.email, password: draft.password, role: draft.role, ...(draft.role === "CLIENT" ? { ratePerOrder: draft.ratePerOrder, showPurchasePrice: draft.showPurchasePrice } : {}) },
         });
       }
       setDraft(null);
@@ -105,7 +106,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                 <td className="px-4 py-3 text-right tabular-nums">{u.role === "CLIENT" ? fmtMoney(u.creditBalance) : "—"}</td>
                 <td className="px-4 py-3"><Badge status={u.active ? "ACTIVE" : "ARCHIVED"}>{u.active ? "Active" : "Inactive"}</Badge></td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="secondary" size="sm" onClick={() => { setError(null); setDraft({ id: u.id, name: u.name, email: u.email, password: "", role: u.role, ratePerOrder: u.ratePerOrder?.toString() ?? "", active: u.active }); }}>
+                  <Button variant="secondary" size="sm" onClick={() => { setError(null); setDraft({ id: u.id, name: u.name, email: u.email, password: "", role: u.role, ratePerOrder: u.ratePerOrder?.toString() ?? "", showPurchasePrice: u.showPurchasePrice, active: u.active }); }}>
                     Edit
                   </Button>
                 </td>
@@ -136,6 +137,12 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
               <Field label="Rate per order *" hint={draft.id ? "Applies to new orders. Existing orders keep their rate." : undefined}>
                 <Input type="number" min="0.01" step="0.01" value={draft.ratePerOrder} onChange={(e) => setDraft({ ...draft, ratePerOrder: e.target.value })} required />
               </Field>
+            )}
+            {draft.role === "CLIENT" && (
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={draft.showPurchasePrice} onChange={(e) => setDraft({ ...draft, showPurchasePrice: e.target.checked })} />
+                Show order processing price to this client
+              </label>
             )}
             {draft.id && draft.id !== currentUserId && (
               <label className="flex items-center gap-2 text-sm text-slate-700">

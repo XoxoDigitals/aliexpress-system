@@ -22,6 +22,7 @@ export function handle<Args extends unknown[]>(
         const field = first?.path.join(".");
         return fail(field ? `${field}: ${first.message}` : first?.message || "Validation failed", 422);
       }
+      if ((err as { code?: string })?.code === "P2002") return fail("This record already exists", 409);
       const e = err as Error & { status?: number; expose?: boolean };
       if (e?.status && e.expose) return fail(e.message, e.status);
       if (e?.status === 400) return fail("Bad request", 400);

@@ -4,7 +4,7 @@ import { api } from "@/lib/utils";
 import { Button, ErrorNote, Field, Input, Modal, Select, Textarea } from "./ui";
 import { useApp } from "./AppContext";
 
-const EMPTY = { clientReference: "", customerDetails: "", productUrl: "", variantName: "", cardInfo: "" };
+const EMPTY = { orderNumber: "", clientReference: "", customerDetails: "", productUrl: "", variantName: "", cardInfo: "" };
 const ADDRESS_EXAMPLE = "Full name\nStreet address\nCity, State ZIP\nCountry\nPhone";
 
 export function OrderForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
@@ -24,6 +24,7 @@ export function OrderForm({ onClose, onCreated }: { onClose: () => void; onCreat
     try {
       await api("/api/orders", {
         body: {
+          orderNumber: form.orderNumber,
           customerDetails: form.customerDetails,
           productUrl: form.productUrl,
           variantName: form.variantName,
@@ -61,8 +62,11 @@ export function OrderForm({ onClose, onCreated }: { onClose: () => void; onCreat
             </Field>
           </div>
         )}
+        <Field label="Order ID" hint="Optional. Leave blank to generate one automatically.">
+          <Input value={form.orderNumber} maxLength={60} onChange={(e) => set("orderNumber", e.target.value)} placeholder="e.g. 3456789012" />
+        </Field>
         <Field label="Customer details *">
-          <Textarea rows={5} required autoFocus placeholder={ADDRESS_EXAMPLE} value={form.customerDetails} onChange={(e) => set("customerDetails", e.target.value)} />
+          <Textarea rows={5} required placeholder={ADDRESS_EXAMPLE} value={form.customerDetails} onChange={(e) => set("customerDetails", e.target.value)} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Product link *">
